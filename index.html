@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Tarefas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #2c2c2c;
+            color: #ffffff;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .task-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            align-items: flex-start;
+            flex-wrap: nowrap;
+        }
+
+        .task-column {
+            width: 48%;
+            background-color: #3b3b3b;
+            padding: 10px;
+            border-radius: 8px;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .task-column h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .task {
+            background-color: #ffffff;
+            color: #000000;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .task.completed {
+            background-color: #f8d7da;
+            text-decoration: line-through;
+        }
+
+        .task-buttons {
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        button {
+            padding: 5px 10px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+        .add-task {
+            margin-bottom: 20px;
+        }
+
+        .add-task input[type="text"] {
+            padding: 8px;
+            border: none;
+            border-radius: 4px;
+            width: 300px;
+            margin-right: 10px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .position-input {
+            width: 60px;
+            padding: 5px 10px;
+            text-align: center;
+            margin-left: 5px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Gerenciador de Tarefas</h1>
+    </div>
+
+    <div class="add-task">
+        <input type="text" id="newTask" placeholder="Digite uma nova tarefa" onkeydown="if(event.key === 'Enter') addTask()">
+        <button onclick="addTask()">Incluir Tarefa</button>
+    </div>
+
+    <div class="task-container">
+        <div class="task-column" id="pendingTasks">
+            <h2>Tarefas Pendentes</h2>
+        </div>
+        <div class="task-column" id="completedTasks">
+            <h2>Tarefas Concluídas</h2>
+        </div>
+    </div>
+
+    <script>
+        let taskId = 0;
+
+        function addTask() {
+            const taskInput = document.getElementById("newTask");
+            const taskText = taskInput.value.trim();
+            if (taskText === "") return;
+
+            taskId++;
+            const taskElement = createTaskElement(taskText, taskId);
+            document.getElementById("pendingTasks").appendChild(taskElement);
+            updateTaskPositions('pendingTasks'); // Atualiza a numeração das tarefas pendentes
+            taskInput.value = ""; // Limpar o campo de entrada
+        }
+
+        function createTaskElement(taskText, id) {
+            const taskDiv = document.createElement("div");
+            taskDiv.className = "task";
+            taskDiv.id = `task-${id}`;
+
+            const taskContent = document.createElement("span");
+            taskContent.textContent = `${id}. ${taskText}`;
+            taskDiv.appendChild(taskContent);
+
+            const taskButtonsDiv = document.createElement("div");
+            taskButtonsDiv.className = "task-buttons";
+
+            const completeButton = document.createElement("button");
+            completeButton.textContent = "Concluído";
+            completeButton.onclick = () => toggleComplete(id);
+            taskButtonsDiv.appendChild(completeButton);
+
+            const positionInput = document.createElement("input");
+            positionInput.type = "text";
+            positionInput.className = "position-input";
+            positionInput.placeholder = "Posição";
+            positionInput.onkeydown = (e) => {
+                if (e.key === "Enter") moveTask(id, positionInput.value);
+            };
+            taskButtonsDiv.appendChild(positionInput);
+
+            const deleteButton = document.createElement("button");
+            deleteButton.textContent = "Excluir";
+            deleteButton.onclick = () => deleteTask(id);
+            taskButtonsDiv.appendChild(deleteButton);
+
+            taskDiv.appendChild(taskButtonsDiv);
+
+            return taskDiv;
+        }
+
+        function toggleComplete(id) {
+            const task = document.getElementById(`task-${id}`);
+            const isCompleted = task.classList.contains("completed");
+            const targetColumn = isCompleted ? "pendingTasks" : "completedTasks";
+
+            task.classList.toggle("completed");
+            document.getElementById(targetColumn).appendChild(task);
+            updateTaskPositions('pendingTasks'); // Atualiza numeração das tarefas pendentes
+            updateTaskPositions('completedTasks'); // Atualiza numeração das tarefas concluídas
+        }
+
+        function moveTask(id, newPosition) {
+            const task = document.getElementById(`task-${id}`);
+            const column = task.classList.contains("completed") ? "completedTasks" : "pendingTasks";
+            const tasks = document.getElementById(column).children;
+            newPosition = parseInt(newPosition, 10) - 1;
+
+            if (newPosition >= 0 && newPosition < tasks.length) {
+                document.getElementById(column).insertBefore(task, tasks[newPosition]);
+                updateTaskPositions(column); // Atualiza a numeração após mover
+            }
+        }
+
+        function deleteTask(id) {
+            const task = document.getElementById(`task-${id}`);
+            task.remove();
+            updateTaskPositions('pendingTasks'); // Atualiza a numeração das tarefas pendentes
+            updateTaskPositions('completedTasks'); // Atualiza a numeração das tarefas concluídas
+        }
+
+        function updateTaskPositions(columnId) {
+            const column = document.getElementById(columnId);
+            const tasks = column.getElementsByClassName("task");
+            for (let i = 0; i < tasks.length; i++) {
+                const task = tasks[i];
+                const taskContent = task.querySelector("span");
+                taskContent.textContent = `${i + 1}. ${taskContent.textContent.split('. ')[1]}`;
+            }
+        }
+    </script>
+</body>
+</html>
